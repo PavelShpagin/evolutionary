@@ -12,7 +12,6 @@ class GAConfig:
     generations: int = 1000
     selection: str = 'tournament'
     tournament_k: int = 4
-    crossover: str = 'pmx'
     crossover_rate: float = 0.9
     mutation: str = 'inversion'
     mutation_rate: float = 0.2
@@ -38,7 +37,7 @@ class GeneticAlgorithm:
         self.config = config
         self.rng = np.random.default_rng(config.seed)
         
-        self.crossover_fn = CROSSOVER_OPS[config.crossover]
+        self.crossover_fn = CROSSOVER_OPS['ox']
         self.mutation_fn = MUTATION_OPS[config.mutation]
         self.mutation_rate = config.mutation_rate
     

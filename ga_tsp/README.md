@@ -1,315 +1,328 @@
-# Genetic Algorithm for Traveling Salesman Problem
+# Genetic Algorithm for TSP
 
-A comprehensive implementation of a Genetic Algorithm (GA) for solving the Euclidean Traveling Salesman Problem (TSP). This project demonstrates how evolutionary algorithms can find near-optimal solutions for combinatorial optimization problems.
+A clean implementation of a Genetic Algorithm (GA) to solve the Traveling Salesman Problem (TSP).
 
-## Overview
+## What is TSP?
 
-The Traveling Salesman Problem asks: Given a list of cities and the distances between them, what is the shortest possible route that visits each city exactly once and returns to the starting city?
+The Traveling Salesman Problem: Given a list of cities, find the shortest route that visits each city exactly once and returns to the start.
 
-This implementation uses a Genetic Algorithm, which:
-- Represents solutions as permutations of cities
-- Uses selection, crossover, and mutation operators to evolve populations
-- Applies elitism to preserve the best solutions
-- Supports multiple crossover strategies (PMX, OX) and mutation types (swap, inversion, insert)
+## What is a Genetic Algorithm?
 
-## Features
+A Genetic Algorithm is inspired by evolution in nature. It works like this:
 
-- Multiple genetic operators (PMX/OX crossover, swap/inversion/insert mutations)
-- Tournament and roulette wheel selection
-- Elitism and adaptive mutation
-- Baseline algorithms (nearest neighbor, 2-opt improvement)
-- Visualization of tours and convergence
-- Comprehensive test suite with brute-force validation
-- Command-line interface for easy experimentation
-- Grid search for parameter optimization
+1. **Population**: Start with a random population of solutions (tours)
+2. **Selection**: Select the best solutions to become parents
+3. **Crossover**: Combine two parent tours to create children
+4. **Mutation**: Randomly modify children to add diversity
+5. **Elitism**: Keep the best solutions from each generation
+6. **Repeat**: Do this for many generations until convergence
 
-## Setup
+## GA Pseudoalgorithm
 
-### Requirements
+```
+FUNCTION GeneticAlgorithm(tsp_instance, config):
+    population = create_random_tours(population_size)
+    best_tour = None
+    best_distance = infinity
+    
+    FOR generation = 1 TO max_generations:
+        # Evaluate all tours
+        FOR EACH tour IN population:
+            distance = calculate_tour_distance(tour)
+        
+        # Update best solution
+        IF min(distances) < best_distance:
+            best_tour = tour_with_min_distance
+            best_distance = min(distances)
+        
+        # Keep elite (best solutions)
+        elite = select_top_k(population, elitism_count)
+        
+        # Create new population
+        new_population = elite
+        
+        WHILE size(new_population) < population_size:
+            # Select parents
+            parent1 = tournament_select(population)
+            parent2 = tournament_select(population)
+            
+            # Crossover
+            IF random() < crossover_rate:
+                child1, child2 = ox_crossover(parent1, parent2)
+            ELSE:
+                child1, child2 = parent1, parent2
+            
+            # Mutation
+            IF random() < mutation_rate:
+                child1 = mutate(child1)
+            IF random() < mutation_rate:
+                child2 = mutate(child2)
+            
+            new_population.add(child1, child2)
+        
+        population = new_population
+        
+        # Early stopping
+        IF no_improvement_for(patience) generations:
+            BREAK
+    
+    RETURN best_tour, best_distance
+```
 
-- Python 3.10 or higher
-- pip
+## How OX Crossover Works
 
-### Installation
+Order Crossover (OX) preserves the relative order of cities:
+
+```
+FUNCTION ox_crossover(parent1, parent2):
+    # Select random segment
+    start, end = random_range(0, length)
+    
+    # Copy segment from parent1 to child
+    child[start:end] = parent1[start:end]
+    
+    # Use set for O(1) lookup of cities already in child
+    in_child = set(child[start:end])
+    
+    # Fill remaining positions from parent2 (in order)
+    child_idx = 0
+    FOR city IN parent2:
+        IF city NOT IN in_child:
+            # Find next empty position
+            WHILE child[child_idx] is not empty:
+                child_idx++
+            child[child_idx] = city
+    
+    RETURN child
+```
+
+**Example:**
+```
+Parent1: [0, 1, 2, 3, 4, 5, 6, 7]
+Parent2: [7, 6, 5, 4, 3, 2, 1, 0]
+Segment: positions 2-5
+
+Step 1: Copy segment from Parent1
+Child:   [-, -, 2, 3, 4, -, -, -]
+
+Step 2: Fill from Parent2 (skip 2,3,4)
+Child:   [7, 6, 2, 3, 4, 5, 1, 0]
+```
+
+## Mutation Types
+
+- **Swap**: Exchange two random cities
+- **Inversion**: Reverse a random segment of the tour
+- **Insert**: Remove a city and insert it at a different position
+
+## Installation
 
 ```bash
+# Create virtual environment
 python -m venv .venv
+
+# Activate (Windows)
+.venv\Scripts\activate
+
+# Activate (Linux/Mac)
 source .venv/bin/activate
+
+# Install
 pip install -e .
 ```
 
-For development (includes pytest):
+## Three Magic Commands
 
+### 1. Generate Test Data
 ```bash
-pip install -e ".[dev]"
+python -m ga_tsp.cli make-data
 ```
+Creates `data/small_12.csv` (12 cities) and `data/medium_50.csv` (50 cities)
 
-## Quick Start
+### 2. Run Brute Force (Optimal Solution)
+```bash
+python -m ga_tsp.cli bruteforce data/small_12.csv
+```
+Finds the optimal solution by trying all permutations (only works for ≤12 cities)
 
-### 1. Generate Datasets
+### 3. Compare GA vs Optimal
+```bash
+python -m ga_tsp.cli compare data/small_12.csv
+```
+Runs both methods and creates side-by-side comparison visualization
 
+## All Commands
+
+### `make-data`
+Generate test datasets
 ```bash
 python -m ga_tsp.cli make-data
 ```
 
-This creates:
-- `data/small_12.csv` - 12 cities (for validation against brute-force optimal)
-- `data/medium_50.csv` - 50 cities (for realistic demonstrations)
-
-### 2. Solve a TSP Instance
-
+### `bruteforce`
+Find optimal solution (≤12 cities only)
 ```bash
-python -m ga_tsp.cli solve data/small_12.csv \
-    --population-size 200 \
-    --generations 1000 \
-    --crossover pmx \
-    --mutation inversion \
-    --seed 42
+python -m ga_tsp.cli bruteforce data/small_12.csv
 ```
 
-This will:
-- Run the genetic algorithm
-- Compare against nearest neighbor baseline
-- Save the best tour visualization to `outputs/best_tour_small_12.png`
-- Save convergence plot to `outputs/convergence_small_12.png`
-- Save tour data to `outputs/best_tour_small_12.csv`
-
-### 3. Run Tests
-
+### `solve`
+Solve with GA
 ```bash
-pytest -v
-```
-
-Or for a quick summary:
-
-```bash
-pytest -q
-```
-
-## Command-Line Interface
-
-### Generate Data
-
-```bash
-python -m ga_tsp.cli make-data [--output-dir DIR]
-```
-
-### Solve TSP
-
-```bash
-python -m ga_tsp.cli solve INPUT_FILE [OPTIONS]
+python -m ga_tsp.cli solve data/small_12.csv
+python -m ga_tsp.cli solve data/medium_50.csv --generations 1500
 ```
 
 Options:
 - `--population-size N` - Population size (default: 200)
-- `--generations N` - Maximum generations (default: 1000)
-- `--selection {tournament,roulette}` - Selection method (default: tournament)
-- `--tournament-k N` - Tournament size (default: 4)
-- `--crossover {pmx,ox}` - Crossover operator (default: pmx)
-- `--crossover-rate RATE` - Crossover probability (default: 0.9)
-- `--mutation {swap,inversion,insert}` - Mutation operator (default: inversion)
+- `--generations N` - Max generations (default: 1000)
+- `--mutation {swap,inversion,insert}` - Mutation type (default: inversion)
 - `--mutation-rate RATE` - Mutation probability (default: 0.2)
+- `--selection {tournament,roulette}` - Selection method (default: tournament)
 - `--elitism N` - Number of elite individuals (default: 5)
-- `--stagnation-patience N` - Stop after N generations without improvement (default: 150)
-- `--seed N` - Random seed for reproducibility (default: 42)
-- `--adaptive-mutation` - Enable adaptive mutation rate
-- `--output-dir DIR` - Output directory (default: outputs)
+- `--seed N` - Random seed (default: 42)
 
-### Grid Search
-
+### `compare`
+Compare GA vs optimal (≤12 cities only)
 ```bash
-python -m ga_tsp.cli grid-search INPUT_FILE \
-    --pop 100,200,300 \
-    --mutation inversion,swap \
-    --crossover pmx,ox \
-    --trials 5
+python -m ga_tsp.cli compare data/small_12.csv
+```
+Creates side-by-side visualization and convergence plot with optimal line
+
+### `grid-search`
+Parameter tuning
+```bash
+python -m ga_tsp.cli grid-search data/medium_50.csv --pop 100,200,300 --mutation inversion,swap --trials 3
 ```
 
-## Usage Examples
+## Project Structure
 
-### Small Instance (Optimal Validation)
-
-```bash
-python -m ga_tsp.cli solve data/small_12.csv \
-    --population-size 200 \
-    --generations 1200 \
-    --crossover pmx \
-    --mutation inversion \
-    --seed 42
+```
+ga_tsp/
+├── src/ga_tsp/
+│   ├── cli.py          # Command-line interface
+│   ├── ga.py           # GA engine
+│   ├── operators.py    # OX crossover and mutations
+│   ├── tsp.py          # TSP data structures
+│   ├── brute_force.py  # Optimal solver
+│   ├── baseline.py     # Nearest neighbor heuristic
+│   ├── viz.py          # Visualization functions
+│   └── utils.py        # Utilities
+├── tests/              # Test suite
+├── data/               # Datasets
+└── outputs/            # Results (plots, CSVs)
 ```
 
-For small instances (≤10 cities), the program computes the optimal solution via brute force and reports the deviation.
+## File Explanations
 
-### Medium Instance
+### Core Source Files
 
-```bash
-python -m ga_tsp.cli solve data/medium_50.csv \
-    --population-size 250 \
-    --generations 1500 \
-    --crossover pmx \
-    --mutation inversion \
-    --seed 42
-```
+1. **`tsp.py`** - TSP data structures
+   - `TSPInstance`: Holds city coordinates and distance matrix
+   - `compute_distance_matrix()`: Euclidean distances
+   - `validate_tour()`: Check if tour is valid
+   - CSV load/save functions
 
-### With Adaptive Mutation
+2. **`operators.py`** - Genetic operators
+   - `ox_crossover()`: Order Crossover (uses sets for O(1) lookup)
+   - `swap_mutation()`: Swap two cities
+   - `inversion_mutation()`: Reverse a segment
+   - `insert_mutation()`: Move a city
 
-```bash
-python -m ga_tsp.cli solve data/medium_50.csv \
-    --population-size 200 \
-    --generations 2000 \
-    --adaptive-mutation \
-    --seed 42
-```
+3. **`ga.py`** - Genetic Algorithm engine
+   - `GAConfig`: Configuration (population size, generations, etc.)
+   - `GAResult`: Results (best tour, convergence history)
+   - `GeneticAlgorithm`: Main GA with selection, crossover, mutation
 
-### Grid Search Example
+4. **`brute_force.py`** - Optimal solver for small instances
 
-```bash
-python -m ga_tsp.cli grid-search data/medium_50.csv \
-    --pop 150,200,250 \
-    --mutation inversion,swap,insert \
-    --crossover pmx,ox \
-    --generations 800 \
-    --trials 3 \
-    --seed 42
-```
+5. **`baseline.py`** - Heuristic algorithms
+   - `nearest_neighbor()`: Greedy nearest city
+   - `two_opt_improvement()`: Local search optimization
 
-## Architecture
+6. **`viz.py`** - Visualization
+   - `plot_tour()`: Single tour visualization
+   - `plot_tour_comparison()`: Side-by-side optimal vs GA
+   - `plot_convergence()`: Fitness over generations
 
-### Module Overview
+7. **`cli.py`** - Command-line interface with all commands
 
-- `tsp.py` - Core TSP data structures and distance calculations
-- `operators.py` - Genetic operators (PMX/OX crossover, swap/inversion/insert mutations)
-- `ga.py` - Main genetic algorithm engine with selection and evolution loop
-- `baseline.py` - Baseline algorithms (nearest neighbor, 2-opt)
-- `brute_force.py` - Brute-force optimal solver for small instances
-- `viz.py` - Visualization functions for tours and convergence
-- `utils.py` - Utility functions for data generation and file I/O
-- `cli.py` - Command-line interface
+8. **`utils.py`** - Helper functions
+   - `generate_random_points()`: Create random cities
+   - `save_tour_csv()`: Save tour to file
 
-### Genetic Operators
+### Test Files
 
-**Crossover:**
-- **PMX (Partially Mapped Crossover)**: Preserves relative ordering by mapping positions between parents
-- **OX (Order Crossover)**: Preserves absolute ordering by copying a segment and filling remaining positions
+All test files are needed and verify different aspects:
 
-**Mutation:**
-- **Swap**: Exchanges two random cities
-- **Inversion**: Reverses a random subsequence
-- **Insert**: Removes a city and inserts it at a different position
+1. **`test_operators.py`** - Tests genetic operators
+   - Verifies OX crossover creates valid permutations
+   - Checks all mutations preserve city sets
+   - Tests edge cases and stress testing
 
-**Selection:**
-- **Tournament**: Selects best from k random individuals
-- **Roulette**: Probabilistic selection based on fitness
+2. **`test_tsp_core.py`** - Tests TSP fundamentals
+   - Distance matrix symmetry
+   - Tour validation (correct/incorrect)
+   - Distance calculations
+   - CSV I/O
+
+3. **`test_integration_small.py`** - Integration tests
+   - GA finds near-optimal solutions (≤1% deviation)
+   - Convergence behavior
+   - Different mutation operators
+   - Stagnation and early stopping
+   - Reproducibility with seeds
+
+4. **`test_baseline_vs_ga.py`** - Comparative tests
+   - GA vs nearest neighbor baseline
+   - Consistency across multiple runs
+   - 2-opt improvement verification
 
 ## Testing
 
-The test suite validates:
-
-1. **Operator correctness** (`test_operators.py`)
-   - PMX and OX produce valid permutations
-   - Mutations preserve the city set
-
-2. **TSP core functionality** (`test_tsp_core.py`)
-   - Distance matrix symmetry
-   - Tour validation
-   - CSV I/O
-
-3. **Small instance optimality** (`test_integration_small.py`)
-   - GA finds optimal or near-optimal solutions (≤1% deviation)
-   - Convergence behavior
-   - Reproducibility with fixed seeds
-
-4. **GA vs baseline comparison** (`test_baseline_vs_ga.py`)
-   - GA outperforms or matches nearest neighbor
-   - Consistent quality across multiple runs
-
-Run all tests:
-
 ```bash
-pytest -v
-```
+# Install with dev dependencies
+pip install -e ".[dev]"
 
-Run specific test file:
+# Run all tests
+pytest
 
-```bash
+# Run specific test file
 pytest tests/test_operators.py -v
 ```
 
-## Reproducing Results
-
-All experiments are reproducible using fixed random seeds:
-
-```bash
-python -m ga_tsp.cli solve data/small_12.csv --seed 42
-```
-
-The same seed will produce identical results across runs.
-
 ## Output Files
 
-After running the solver, you'll find in the `outputs/` directory:
+After running commands, check `outputs/` directory:
+- `comparison_*.png` - Side-by-side optimal vs GA tours
+- `convergence_*.png` - Fitness over generations (with optimal line if available)
+- `best_tour_*.csv` - Tour order and distance
+- `optimal_tour_*.csv` - Optimal tour from brute force
 
-- `best_tour_<name>.png` - Visualization of the best tour found
-- `convergence_<name>.png` - Plot showing fitness over generations
-- `best_tour_<name>.csv` - Tour order and total distance
+## Examples
 
-## Performance
+```bash
+# Generate data
+python -m ga_tsp.cli make-data
 
-Typical results on the provided datasets:
+# Compare on small instance
+python -m ga_tsp.cli compare data/small_12.csv
 
-- **small_12.csv** (12 cities): GA finds optimal or near-optimal (≤1% deviation) in ~500 generations
-- **medium_50.csv** (50 cities): GA improves 5-15% over nearest neighbor baseline in ~1000 generations
+# Solve medium instance with custom parameters
+python -m ga_tsp.cli solve data/medium_50.csv --population-size 250 --generations 2000 --seed 123
 
-## Extending the Project
-
-### Add New Mutation Operator
-
-Edit `src/ga_tsp/operators.py`:
-
-```python
-def my_mutation(tour, rng):
-    # Your implementation
-    return mutated_tour
-
-MUTATION_OPS['my_mutation'] = my_mutation
+# Parameter tuning
+python -m ga_tsp.cli grid-search data/medium_50.csv --pop 150,200,250 --mutation swap,inversion,insert --trials 5
 ```
 
-### Add Local Search
+## Tips
 
-Implement 2-opt or 3-opt in `baseline.py` and apply it to GA solutions:
-
-```python
-from ga_tsp.baseline import two_opt_improvement
-
-# After GA evolution
-improved_tour, improved_dist = two_opt_improvement(tsp, result.best_tour)
-```
-
-### Parallel Evaluation
-
-Modify `ga.py` to use multiprocessing for fitness evaluation:
-
-```python
-from multiprocessing import Pool
-
-def evaluate_population_parallel(self, population):
-    with Pool() as pool:
-        fitness = pool.map(self.tsp.evaluate, population)
-    return np.array(fitness)
-```
-
-## References
-
-- Goldberg, D. E. (1989). Genetic Algorithms in Search, Optimization, and Machine Learning
-- Larrañaga, P. et al. (1999). Genetic Algorithms for the Travelling Salesman Problem: A Review of Representations and Operators
+- Use `--seed` for reproducible results
+- Larger `--population-size` explores more solutions but is slower
+- More `--generations` allows longer search
+- `inversion` mutation works well for TSP
+- `compare` command is great for understanding GA behavior on small instances
+- All datasets are reusable - generate once, experiment many times
 
 ## License
 
-See LICENSE file for details.
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-- All tests pass (`pytest -q`)
-- Code is formatted and documented
-- New features include tests
+See LICENSE file.

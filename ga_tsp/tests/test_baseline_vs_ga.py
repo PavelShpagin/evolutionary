@@ -15,7 +15,6 @@ def test_ga_vs_baseline_improvement():
     config = GAConfig(
         population_size=150,
         generations=500,
-        crossover='pmx',
         mutation='inversion',
         seed=555,
     )

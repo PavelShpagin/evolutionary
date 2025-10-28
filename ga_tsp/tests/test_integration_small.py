@@ -15,7 +15,6 @@ def test_small_instance_optimal():
     config = GAConfig(
         population_size=100,
         generations=500,
-        crossover='pmx',
         mutation='inversion',
         seed=42,
         stagnation_patience=100,
@@ -58,9 +57,9 @@ def test_ga_different_operators():
     tsp = TSPInstance(points)
     
     configs = [
-        GAConfig(population_size=50, generations=100, crossover='pmx', mutation='swap', seed=1),
-        GAConfig(population_size=50, generations=100, crossover='ox', mutation='inversion', seed=1),
-        GAConfig(population_size=50, generations=100, crossover='pmx', mutation='insert', seed=1),
+        GAConfig(population_size=50, generations=100, mutation='swap', seed=1),
+        GAConfig(population_size=50, generations=100, mutation='inversion', seed=1),
+        GAConfig(population_size=50, generations=100, mutation='insert', seed=1),
     ]
     
     for config in configs:
